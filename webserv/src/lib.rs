@@ -1,3 +1,4 @@
+pub mod wsrv;
 use std::{sync::{mpsc, Arc, Mutex}, thread};
 
 pub struct ThreadPool

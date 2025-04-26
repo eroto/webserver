@@ -1,3 +1,8 @@
+<!-- 
+This section of the README file outlines the components of the webserver project. 
+It provides a detailed breakdown of the various modules or parts that make up the system.
+-->
+
 # webserver
 rust web server
 
@@ -13,6 +18,7 @@ rust web server
  - Handles a special `/sleep` route that simulates a delay of 5 seconds.
  - Returns a `404 Not Found` response for unknown routes.
  - Determines the MIME type of files using the `mime_guess` crate.
+
 
  # Components
  - **ThreadPool**: A custom thread pool implementation for managing worker threads.
