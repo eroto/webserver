@@ -19,9 +19,7 @@ fn main()
     let listener:TcpListener = TcpListener::bind("127.0.0.1:7878").unwrap();
     let pool = ThreadPool::new(4);
     println!("Web server started");
-    //thread::sleep(Duration::from_secs(1));
-
-    //for stream in listener.incoming().take(3)
+    
     for stream_result in listener.incoming()
     {
         match stream_result{
@@ -30,7 +28,7 @@ fn main()
                     match hdl_connect_result
                     {
                         Ok(ret_val) => {println!("Connection handled correctly: {}",ret_val);}
-                        Err(error_txt)=> {println!("Handle_connecion error:{}",error_txt);}
+                        Err(error_txt)=> {println!("handle_connecion error:{}",error_txt);}
                     }
                 
                 });
@@ -45,7 +43,6 @@ fn handle_connection(mut stream: TcpStream) -> Result<u8,String>
 {
     println!("New client connected");
     let buf_reader = BufReader::new(&mut stream);
-    //let mime_type = from_path(file_path)
 
     let http_line_request= match buf_reader.lines().next(){
         Some(Ok(line))=> line,
@@ -111,11 +108,9 @@ fn handle_connection(mut stream: TcpStream) -> Result<u8,String>
         println!("{}",mime_type);
 
         let response= format!("{status_line}\r\nContent-Type:{mime_type}\r\nContent-Length{length}\r\n\r\n");
-            //{content}");
+
         stream.write(response.as_bytes()).expect("Failed to write response");
         stream.write(&content).expect("Failed to write content");
 
         Ok(1)
-
-        //stream.write_all(response.as_bytes()).unwrap();
 }
