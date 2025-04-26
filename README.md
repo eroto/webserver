@@ -7,84 +7,124 @@ It provides a detailed breakdown of the various modules or parts that make up th
 rust web server
 
 # main.rs
- A simple multi-threaded web server implemented in Rust.
-
- This web server listens for incoming TCP connections on `127.0.0.1:7878`
- and serves static files based on HTTP GET requests. It uses a thread pool
- to handle multiple connections concurrently.
-
- # Features
- - Serves static files such as `index.html`, `pitaya.jpeg`, `maiz.jpg`, and `pitaya.html`.
- - Handles a special `/sleep` route that simulates a delay of 5 seconds.
- - Returns a `404 Not Found` response for unknown routes.
- - Determines the MIME type of files using the `mime_guess` crate.
-
-
- # Components
- - **ThreadPool**: A custom thread pool implementation for managing worker threads.
- - **handle_connection**: Processes individual client connections and serves appropriate responses.
-
- # HTTP Responses
- - `200 OK`: Returned for valid requests with the requested file content.
- - `404 NOT FOUND`: Returned for invalid or unknown routes.
-
- # Example Usage
- Start the server by running the program. Access it via a web browser or a tool like `curl`:
- curl http://127.0.0.1:7878/
- curl http://127.0.0.1:7878/pitaya.jpeg
- curl http://127.0.0.1:7878/sleep
- curl http://127.0.0.1:7878/unknown
-
-
- # Error Handling
- - Logs errors to the console if a connection cannot be established or if an HTTP request is malformed.
- - Returns a `404` page if the requested file is not found.
-
- # Dependencies
- - `mime_guess`: Used to determine the MIME type of files.
- - `webserv::ThreadPool`: A custom thread pool implementation for managing worker threads.
-
- # Notes
- - The server shuts down gracefully when terminated.
- - The `Content-Type` header is dynamically set based on the file's MIME type.
- - The server currently supports only a limited set of predefined routes and files.
+ # Simple Web Server
+ This program is a simple web server written in Rust that serves static files 
+ and determines the MIME type of the files being served. It is designed to run 
+ on a specified IP address and port, and it uses the `WebServer` struct from 
+ the `webserv` crate to handle the server functionality.
+ 
+ ## Features
+ - Serves static files.
+ - Determines and handles MIME types for the served files.
+ 
+ ## Usage
+ The server is started by calling the `start_server` function with the desired 
+ IP address and port number. The server will run until it is manually stopped, 
+ after which a shutdown message will be printed to the console.
+ 
+## License
+This program is licensed under the GNU General Public License v3.0 (GPLv3). 
+You are free to redistribute and/or modify it under the terms of the license. 
+See the license text for more details.
 
 # lib.rs
- A "ThreadPool" is a collection of worker threads that can execute tasks concurrently.
- 
- # Methods
- 
- ## `new`
- 
- Creates a new `ThreadPool` with the specified number of threads.
- 
- - **Arguments**:
-   - `size`: The number of threads in the pool. Must be greater than 0.
- 
- - **Returns**: 
-   - A `ThreadPool` instance with the specified number of worker threads.
- 
- - **Panics**:
-   - If `size` is 0.
- 
- - **Example**:
+
+ A module that provides a simple implementation of a thread pool for managing
+ concurrent execution of tasks.
+
+ # Overview
+ The `ThreadPool` struct allows you to create a pool of worker threads that
+ can execute tasks concurrently. Tasks are sent to the thread pool via a
+ channel, and each worker thread picks up tasks from the channel and executes
+ them.
+
+ # Structs
+ - `ThreadPool`: Manages a pool of worker threads and provides an interface
+   for submitting tasks.
+ - `Worker`: Represents an individual worker thread in the thread pool.
+
+ # Type Aliases
+ - `Job`: A type alias for a boxed closure that represents a task to be
+   executed by the thread pool.
+
+ # Examples
  ```rust
+ use webserv::ThreadPool;
+
  let pool = ThreadPool::new(4);
- ```
- 
- ## `execute`
- 
- Executes a task on the thread pool.
- 
- - **Arguments**:
-   - `f`: A closure or function that implements `FnOnce() + Send + 'static`.
- 
- - **Behavior**:
-   - The task is sent to the thread pool and executed by one of the worker threads.
- 
- - **Example**:
- ```rust
+
  pool.execute(|| {
-     println!("Task executed in the thread pool");
+     println!("Task 1 executed");
+ });
+
+ pool.execute(|| {
+     println!("Task 2 executed");
  });
  ```
+
+ # Implementation Details
+ - The `ThreadPool` struct maintains a vector of `Worker` instances and a
+   sender for sending tasks to the workers.
+ - The `Worker` struct contains an ID and a thread handle. Each worker runs
+   in a loop, receiving tasks from a shared channel and executing them.
+ - The `Drop` trait is implemented for `ThreadPool` to gracefully shut down
+   all worker threads when the thread pool goes out of scope.
+
+ # Methods
+ ## `ThreadPool`
+   Creates a new thread pool with the specified number of worker threads.
+   Panics if the size is zero.
+ - `execute<F>(&self, f: F)`
+   Submits a task to the thread pool for execution. The task must implement
+   the `FnOnce` trait and be `Send` and `'static`.
+
+ ## `Worker`
+ - `new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker`
+   Creates a new worker thread with the specified ID and a shared receiver
+   for receiving tasks.
+
+ # Notes
+ - The thread pool uses an `mpsc` channel for task communication and an
+   `Arc<Mutex<_>>` to share the receiver among worker threads.
+ - When the `ThreadPool` is dropped, it shuts down all workers by dropping
+   the sender and joining all worker threads.
+
+# wsrv.rs
+ A struct representing a simple multi-threaded web server.
+
+ The `WebServer` struct provides functionality to create and run a web server
+ that listens for incoming HTTP requests and serves static files. It also tracks
+ server uptime and the number of connections handled.
+
+ # Fields
+ - `address`: The IP address or hostname where the server will listen for connections.
+ - `port`: The port number where the server will listen for connections.
+ - `start_time`: The time when the server was created, used to calculate uptime.
+ - `connections_handled`: The number of connections successfully handled by the server.
+
+ # Methods
+ - `new(address: String, port: u16) -> WebServer`:
+   Creates a new instance of the `WebServer` with the specified address and port.
+   Prints server details and initialization time.
+ - `run(&mut self)`:
+   Starts the server, listens for incoming connections, and handles them using a thread pool.
+   Increments the number of connections handled for each successful connection.
+ - `get_uptime(&self) -> u64`:
+   Returns the server's uptime in seconds.
+ - `get_connections_handled(&self) -> u64`:
+   Returns the total number of connections handled by the server.
+ - `increment_connections_handled(&mut self)`:
+   Increments the internal counter for the number of connections handled.
+
+ # Drop Trait
+ Implements the `Drop` trait to perform cleanup when the server is dropped.
+ Prints the server's uptime and the total number of connections handled.
+
+ # Example
+ ```rust
+ let mut server = WebServer::new("127.0.0.1".to_string(), 8080);
+ server.run();
+ ```
+
+
+ 
