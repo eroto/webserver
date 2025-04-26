@@ -1,4 +1,3 @@
-
 //Created by: Enrique Rodriguez Toscano
 //Date: 2023-10-01
 //Description: Simple web server in Rust that serves static files and determines the MIME type of the files being served.
@@ -22,7 +21,6 @@ pub struct WebServer
     start_time: std::time::SystemTime,
     connections_handled: u64,
 }
-
 
 fn handle_connection(mut stream: TcpStream) -> Result<u8,String>
 {
