@@ -14,88 +14,13 @@ use std::
 use crate::ThreadPool;
 use mime_guess::from_path;
 
+
 pub struct WebServer
 {
     address: String,
     port: u16,
     start_time: std::time::SystemTime,
     connections_handled: u64,
-}
-
-fn handle_connection(mut stream: TcpStream) -> Result<u8,String>
-{
-    println!("New client connected");
-    let buf_reader = BufReader::new(&mut stream);
-
-    let http_line_request= match buf_reader.lines().next(){
-        Some(Ok(line))=> line,
-        Some(Err(e))=> return Err(format!("Error reading http header line{}",e)),
-        None => return Err("No https request line received".to_string()),
-    };
-
-    let req_parts: Vec<&str> = http_line_request.split_whitespace().collect();
-
-    let file:&str = if req_parts.len() > 1
-    {
-        req_parts[1]
-    }
-    else //Invalid request
-    {
-        return Err("Invalid request received".to_string())
-    };
-    println!("file:{}",file);
-
-    let ok_resp: &str = "HTTP/1.1 200 OK";
-    let nok_resp: &str = "HTTP/1.1 404 NOT FOUND";
-        
-    let(status_line, file_name) = match &http_line_request[..]
-    {
-        "GET / HTTP/1.1" | "GET /index.html HTTP/1.1" =>
-        {
-            let file = "index.html";
-            (ok_resp, file)
-        },
-        
-        "GET /pitaya.jpeg HTTP/1.1" =>
-        {
-            let file= "pitaya.jpeg";
-            (ok_resp,file)
-        },
-
-        "GET /maiz.jpg HTTP/1.1" =>
-        {
-            let file= "maiz.jpg";
-            (ok_resp,file)
-        },
-
-        "GET /pitaya.html HTTP/1.1" =>
-        {
-            let file= "pitaya.html";
-            (ok_resp,file)
-        },
-
-        "GET /sleep HTTP/1.1" =>
-            {thread::sleep(Duration::from_secs(5));
-            (ok_resp,"index.html")}
-
-        _ =>
-        {
-            let file = "err404.html";
-            (nok_resp,file)
-        },
-            
-    };
-        let content= fs::read(file_name).unwrap();
-        let length = content.len();
-        let mime_type = from_path(file_name).first_or_octet_stream();
-        println!("{}",mime_type);
-
-        let response= format!("{status_line}\r\nContent-Type:{mime_type}\r\nContent-Length{length}\r\n\r\n");
-
-        stream.write(response.as_bytes()).expect("Failed to write response");
-        stream.write(&content).expect("Failed to write content");
-
-        Ok(1)
 }
 
 impl WebServer
@@ -168,6 +93,7 @@ impl WebServer
     
 }
 
+
 impl Drop for WebServer
 {
     fn drop(&mut self)
@@ -177,4 +103,82 @@ impl Drop for WebServer
         println!("Number of connections handled: {}",self.get_connections_handled());
     }
     
+}
+
+fn handle_connection(mut stream: TcpStream) -> Result<u8,String>
+{
+    println!("New client connected");
+    let buf_reader = BufReader::new(&mut stream);
+
+    let http_line_request= match buf_reader.lines().next(){
+        Some(Ok(line))=> line,
+        Some(Err(e))=> return Err(format!("Error reading http header line{}",e)),
+        None => return Err("No https request line received".to_string()),
+    };
+
+    let req_parts: Vec<&str> = http_line_request.split_whitespace().collect();
+
+    let file:&str = if req_parts.len() > 1
+    {
+        req_parts[1]
+    }
+    else //Invalid request
+    {
+        return Err("Invalid request received".to_string())
+    };
+    println!("file:{}",file);
+
+    let ok_resp: &str = "HTTP/1.1 200 OK";
+    let nok_resp: &str = "HTTP/1.1 404 NOT FOUND";
+
+    //let dir_path: String = ".".to_string();
+     
+    let(status_line, file_name) = match &http_line_request[..]
+    {
+        "GET / HTTP/1.1" | "GET /index.html HTTP/1.1" =>
+        {
+            let file = "index.html";
+            (ok_resp, file)
+        },
+        
+        "GET /pitaya.jpeg HTTP/1.1" =>
+        {
+            let file= "pitaya.jpeg";
+            (ok_resp,file)
+        },
+
+        "GET /maiz.jpg HTTP/1.1" =>
+        {
+            let file= "maiz.jpg";
+            (ok_resp,file)
+        },
+
+        "GET /pitaya.html HTTP/1.1" =>
+        {
+            let file= "pitaya.html";
+            (ok_resp,file)
+        },
+
+        "GET /sleep HTTP/1.1" =>
+            {thread::sleep(Duration::from_secs(5));
+            (ok_resp,"index.html")}
+
+        _ =>
+        {
+            let file = "err404.html";
+            (nok_resp,file)
+        },            
+    };
+
+        let content= fs::read(file_name).unwrap();
+        let length = content.len();
+        let mime_type = from_path(file_name).first_or_octet_stream();
+        println!("{}",mime_type);
+
+        let response= format!("{status_line}\r\nContent-Type:{mime_type}\r\nContent-Length{length}\r\n\r\n");
+
+        stream.write(response.as_bytes()).expect("Failed to write response");
+        stream.write(&content).expect("Failed to write content");
+
+        Ok(1)
 }
